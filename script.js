@@ -1,361 +1,165 @@
-/**
- * RapidFlow Plumbing & Drain — script.js
- * Final pre-launch audit pass
- * Fixes: form button icon restore, stagger delay reset, slider a11y
- */
+/* ============================================================
+   RAPIDFLOW PLUMBING & DRAIN — Shared Script
+   ============================================================ */
+(function () {
+  'use strict';
 
-'use strict';
+  const prefersReduced = () =>
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ─── HELPERS ─────────────────────────────── */
-const qs  = (s, c = document) => c.querySelector(s);
-const qsa = (s, c = document) => Array.from(c.querySelectorAll(s));
-const prefersReducedMotion = () =>
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/* ─── STICKY HEADER ──────────────────────── */
-function initHeader() {
-  const header = qs('#header');
-  if (!header) return;
-  let ticking = false;
-  window.addEventListener('scroll', () => {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
-      header.classList.toggle('is-scrolled', window.scrollY > 8);
-      ticking = false;
-    });
-  }, { passive: true });
-}
-
-/* ─── MOBILE NAV ─────────────────────────── */
-function initMobileNav() {
-  const toggle = qs('#navToggle');
-  const nav    = qs('#nav');
-  if (!toggle || !nav) return;
-
-  if (!qs('.nav__mobile-cta', nav)) {
-    const a = document.createElement('a');
-    a.href      = 'tel:5558732211';
-    a.className = 'nav__mobile-cta';
-    a.setAttribute('aria-label', 'Call RapidFlow Plumbing at (555) 873-2211');
-    a.textContent = '📞  Call (555) 873-2211 — Available 24/7';
-    nav.appendChild(a);
-  }
-
-  const openNav = () => {
-    nav.classList.add('is-open');
-    toggle.classList.add('is-open');
-    toggle.setAttribute('aria-expanded', 'true');
-    toggle.setAttribute('aria-label', 'Close navigation menu');
-    document.body.style.overflow = 'hidden';
-  };
-
-  const closeNav = () => {
-    nav.classList.remove('is-open');
-    toggle.classList.remove('is-open');
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.setAttribute('aria-label', 'Open navigation menu');
-    document.body.style.overflow = '';
-  };
-
-  toggle.addEventListener('click', () =>
-    nav.classList.contains('is-open') ? closeNav() : openNav()
-  );
-
-  qsa('a', nav).forEach(link => link.addEventListener('click', closeNav));
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && nav.classList.contains('is-open')) closeNav();
-  });
-
-  document.addEventListener('click', e => {
-    if (
-      nav.classList.contains('is-open') &&
-      !nav.contains(e.target) &&
-      !toggle.contains(e.target)
-    ) closeNav();
-  });
-}
-
-/* ─── SCROLL REVEAL ──────────────────────── */
-function initReveal() {
-  if (prefersReducedMotion()) {
-    qsa('.reveal').forEach(el => el.classList.add('is-visible'));
-    return;
-  }
-
-  const els = qsa('.reveal');
-  if (!els.length) return;
-
-  const STAGGER_PARENTS = [
-    '.services__grid',
-    '.why__grid',
-    '.trust-strip__inner',
-    '.footer__grid',
-  ].join(', ');
-
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      const el     = entry.target;
-      const parent = el.closest(STAGGER_PARENTS);
-
-      if (parent) {
-        const siblings = qsa('.reveal', parent);
-        const idx      = siblings.indexOf(el);
-        const delay    = idx > 0 ? Math.min(idx * 65, 280) : 0;
-        el.style.transitionDelay = `${delay}ms`;
+  /* ── Active nav link ───────────────────────────────────── */
+  (function setActive() {
+    const path = window.location.pathname
+      .replace(/index\.html$/, '')
+      .replace(/\/$/, '');
+    document.querySelectorAll('.nav__link').forEach(a => {
+      const href = a.getAttribute('href')
+        .replace(/index\.html$/, '')
+        .replace(/\/$/, '');
+      if (href === path || (path.endsWith(href) && href !== '')) {
+        a.classList.add('active');
       }
-
-      el.classList.add('is-visible');
-
-      // Fixed: clear stagger delay after animation completes so it
-      // doesn't linger and affect any future state changes
-      el.addEventListener('transitionend', () => {
-        el.style.transitionDelay = '';
-      }, { once: true });
-
-      io.unobserve(el);
     });
-  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  })();
 
-  els.forEach(el => io.observe(el));
-}
-
-/* ─── ACTIVE NAV ─────────────────────────── */
-function initActiveNav() {
-  const sections = qsa('section[id]');
-  const links    = qsa('.nav__link');
-  if (!sections.length || !links.length) return;
-
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      links.forEach(l => l.classList.remove('is-active'));
-      const match = links.find(
-        l => l.getAttribute('href') === `#${entry.target.id}`
-      );
-      if (match) match.classList.add('is-active');
+  /* ── Mobile nav ─────────────────────────────────────────── */
+  (function mobileNav() {
+    const toggle = document.getElementById('navToggle');
+    const nav    = document.getElementById('nav');
+    if (!toggle || !nav) return;
+    const close = () => {
+      nav.classList.remove('open');
+      toggle.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    };
+    toggle.addEventListener('click', () => {
+      const open = nav.classList.toggle('open');
+      toggle.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      document.body.style.overflow = open ? 'hidden' : '';
     });
-  }, { rootMargin: '-20% 0px -70% 0px' });
-
-  sections.forEach(s => io.observe(s));
-}
-
-/* ─── SMOOTH SCROLL ──────────────────────── */
-function initSmoothScroll() {
-  qsa('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', e => {
-      const hash = a.getAttribute('href');
-      if (!hash || hash === '#') return;
-      const target = document.querySelector(hash);
-      if (!target) return;
-      e.preventDefault();
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    nav.querySelectorAll('.nav__link').forEach(a => a.addEventListener('click', close));
+    document.addEventListener('click', e => {
+      if (nav.classList.contains('open') &&
+          !nav.contains(e.target) &&
+          !toggle.contains(e.target)) close();
     });
-  });
-}
+  })();
 
-/* ─── TESTIMONIAL SLIDER ─────────────────── */
-function initSlider() {
-  const track    = qs('#sliderTrack');
-  const prevBtn  = qs('#sliderPrev');
-  const nextBtn  = qs('#sliderNext');
-  const dotsWrap = qs('#sliderDots');
-  if (!track || !prevBtn || !nextBtn || !dotsWrap) return;
+  /* ── Header shadow ──────────────────────────────────────── */
+  (function headerShadow() {
+    const h = document.getElementById('header');
+    if (!h) return;
+    const check = () => h.classList.toggle('scrolled', window.scrollY > 10);
+    window.addEventListener('scroll', check, { passive: true });
+    check();
+  })();
 
-  const slides = qsa('.slider__slide', track);
-  const total  = slides.length;
-  if (total < 2) return;
+  /* ── Mobile sticky bar ──────────────────────────────────── */
+  (function mobBar() {
+    const bar = document.getElementById('mobBar');
+    if (!bar || window.innerWidth > 820) return;
+    let shown = false;
+    const show = () => {
+      if (shown) return;
+      shown = true;
+      bar.classList.add('visible');
+      window.removeEventListener('scroll', show, { passive: true });
+    };
+    window.addEventListener('scroll', show, { passive: true });
+    setTimeout(show, 700);
+  })();
 
-  let current   = 0;
-  let autoTimer = null;
-
-  // Build dot indicators
-  slides.forEach((_, i) => {
-    const dot = document.createElement('button');
-    dot.className = `slider__dot${i === 0 ? ' is-active' : ''}`;
-    dot.setAttribute('role', 'tab');
-    dot.setAttribute('aria-label', `View review ${i + 1} of ${total}`);
-    dot.setAttribute('aria-selected', String(i === 0));
-    dot.addEventListener('click', () => goTo(i));
-    dotsWrap.appendChild(dot);
-  });
-
-  const dots = qsa('.slider__dot', dotsWrap);
-
-  function goTo(idx) {
-    current = ((idx % total) + total) % total;
-    track.style.transform = `translateX(-${current * 100}%)`;
-
-    slides.forEach((s, i) => {
-      s.setAttribute('aria-hidden', String(i !== current));
-    });
-    dots.forEach((d, i) => {
-      const active = i === current;
-      d.classList.toggle('is-active', active);
-      d.setAttribute('aria-selected', String(active));
-    });
-
-    resetAuto();
-  }
-
-  function resetAuto() {
-    if (prefersReducedMotion()) return;
-    clearInterval(autoTimer);
-    autoTimer = setInterval(() => goTo(current + 1), 5500);
-  }
-
-  // Hide non-active slides from assistive technology on load
-  slides.forEach((s, i) => {
-    if (i !== 0) s.setAttribute('aria-hidden', 'true');
-  });
-
-  prevBtn.addEventListener('click', () => goTo(current - 1));
-  nextBtn.addEventListener('click', () => goTo(current + 1));
-
-  // Keyboard navigation
-  qs('#testimonialSlider').addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft')  { e.preventDefault(); goTo(current - 1); }
-    if (e.key === 'ArrowRight') { e.preventDefault(); goTo(current + 1); }
-  });
-
-  // Touch swipe
-  let swipeStartX = 0;
-  track.addEventListener('touchstart', e => {
-    swipeStartX = e.touches[0].clientX;
-  }, { passive: true });
-  track.addEventListener('touchend', e => {
-    const dx = swipeStartX - e.changedTouches[0].clientX;
-    if (Math.abs(dx) > 44) goTo(dx > 0 ? current + 1 : current - 1);
-  }, { passive: true });
-
-  // Pause autoplay on hover / focus
-  const sliderEl = qs('#testimonialSlider');
-  sliderEl.addEventListener('mouseenter', () => clearInterval(autoTimer));
-  sliderEl.addEventListener('focusin',    () => clearInterval(autoTimer));
-  sliderEl.addEventListener('mouseleave', resetAuto);
-  sliderEl.addEventListener('focusout', e => {
-    if (!sliderEl.contains(e.relatedTarget)) resetAuto();
-  });
-
-  resetAuto();
-}
-
-/* ─── FAQ ACCORDION ──────────────────────── */
-function initFAQ() {
-  const items = qsa('.faq__item');
-  if (!items.length) return;
-
-  items.forEach(item => {
-    const btn    = qs('.faq__question', item);
-    const answer = qs('.faq__answer', item);
-    if (!btn || !answer) return;
-
-    btn.addEventListener('click', () => {
-      const isOpen = item.classList.contains('faq__item--open');
-
-      // Close all others
-      items.forEach(other => {
-        if (other === item) return;
-        other.classList.remove('faq__item--open');
-        const otherBtn = qs('.faq__question', other);
-        if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
-      });
-
-      item.classList.toggle('faq__item--open', !isOpen);
-      btn.setAttribute('aria-expanded', String(!isOpen));
-    });
-  });
-}
-
-/* ─── CONTACT FORM ───────────────────────── */
-function initContactForm() {
-  const form      = qs('#contactForm');
-  const successEl = qs('#formSuccess');
-  if (!form || !successEl) return;
-
-  const required = qsa('[required]', form);
-  const submitBtn = qs('[type="submit"]', form);
-
-  // Fixed: snapshot the button's child nodes on load so we can
-  // restore them exactly (SVG icon + text) without using innerHTML
-  const btnChildNodes = Array.from(submitBtn.childNodes).map(n => n.cloneNode(true));
-
-  required.forEach(field => {
-    field.addEventListener('blur',  () => validateField(field));
-    field.addEventListener('input', () => clearError(field));
-  });
-
-  function clearError(field) {
-    field.classList.remove('is-error');
-    field.removeAttribute('aria-invalid');
-  }
-
-  function validateField(field) {
-    const empty = !field.value.trim();
-    if (empty) {
-      field.classList.add('is-error');
-      field.setAttribute('aria-invalid', 'true');
-      return false;
-    }
-    clearError(field);
-    return true;
-  }
-
-  function setSubmitting(on) {
-    submitBtn.disabled = on;
-    if (on) {
-      submitBtn.textContent = 'Sending…';
-    } else {
-      // Fixed: restore original children (text + SVG icon) from snapshot
-      submitBtn.replaceChildren(...btnChildNodes.map(n => n.cloneNode(true)));
-    }
-  }
-
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-
-    let valid = true;
-    required.forEach(field => { if (!validateField(field)) valid = false; });
-
-    if (!valid) {
-      const first = required.find(f => f.classList.contains('is-error'));
-      if (first) first.focus();
+  /* ── Scroll reveal ──────────────────────────────────────── */
+  (function reveal() {
+    if (prefersReduced()) {
+      document.querySelectorAll('.sr').forEach(el => el.classList.add('visible'));
       return;
     }
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.sr').forEach(el => io.observe(el));
+  })();
 
-    setSubmitting(true);
+  /* ── FAQ accordion ──────────────────────────────────────── */
+  (function faq() {
+    const list = document.getElementById('faqList');
+    if (!list) return;
+    list.addEventListener('click', e => {
+      const btn  = e.target.closest('.faq-trigger');
+      if (!btn) return;
+      const item = btn.closest('.faq-item');
+      const open = item.classList.contains('open');
+      list.querySelectorAll('.faq-item.open').forEach(el => {
+        el.classList.remove('open');
+        el.querySelector('.faq-trigger').setAttribute('aria-expanded', 'false');
+      });
+      if (!open) { item.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+    });
+  })();
 
-    // Simulate network request — replace with real fetch() in production
-    setTimeout(() => {
-      form.reset();
-      required.forEach(f => clearError(f));
-      setSubmitting(false);
+  /* ── Contact form ───────────────────────────────────────── */
+  (function form() {
+    const f   = document.getElementById('contactForm');
+    const btn = document.getElementById('formSubmit');
+    if (!f || !btn) return;
+    const orig = btn.innerHTML;
 
-      successEl.setAttribute('aria-hidden', 'false');
-      successEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    f.querySelectorAll('.form-input').forEach(el => {
+      el.addEventListener('blur', () => {
+        el.style.borderColor = el.value.trim() ? 'var(--green)' : 'var(--ink-100)';
+        el.style.boxShadow   = '';
+      });
+    });
 
-      setTimeout(() => successEl.setAttribute('aria-hidden', 'true'), 7000);
-    }, 1200);
-  });
-}
+    f.addEventListener('submit', async e => {
+      e.preventDefault();
+      const name  = f.querySelector('[name="name"]');
+      const phone = f.querySelector('[name="phone"]');
+      let ok = true;
+      [name, phone].forEach(el => {
+        if (!el || !el.value.trim()) { if (el) el.style.borderColor = 'var(--red)'; ok = false; }
+      });
+      if (!ok) { if (name) name.focus(); return; }
 
-/* ─── FOOTER YEAR ────────────────────────── */
-function initFooterYear() {
-  const el = qs('#footerYear');
-  if (el) el.textContent = new Date().getFullYear();
-}
+      btn.disabled = true; btn.style.opacity = '.7'; btn.innerHTML = 'Sending…';
+      await new Promise(r => setTimeout(r, 1200));
 
-/* ─── INIT ───────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
-  initHeader();
-  initMobileNav();
-  initReveal();
-  initActiveNav();
-  initSmoothScroll();
-  initSlider();
-  initFAQ();
-  initContactForm();
-  initFooterYear();
-});
+      btn.disabled = false; btn.style.opacity = '1';
+      btn.style.background = 'var(--green)';
+      btn.style.boxShadow  = '0 6px 20px rgba(16,185,129,.3)';
+      btn.innerHTML = '&#10003; Sent — We\'ll call you shortly';
+      f.reset();
+      f.querySelectorAll('.form-input').forEach(el => { el.style.borderColor = 'var(--ink-100)'; el.style.boxShadow = ''; });
+      setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.boxShadow = ''; }, 5000);
+    });
+  })();
+
+  /* ── Animated counters ──────────────────────────────────── */
+  (function counters() {
+    if (prefersReduced()) return;
+    document.querySelectorAll('[data-count]').forEach(el => {
+      const target = parseInt(el.dataset.count, 10);
+      const suffix = el.dataset.suffix || '';
+      let done = false;
+      const io = new IntersectionObserver(([entry]) => {
+        if (!entry.isIntersecting || done) return;
+        done = true; io.disconnect();
+        let start = null;
+        const step = ts => {
+          if (!start) start = ts;
+          const p = Math.min((ts - start) / 1800, 1);
+          el.textContent = Math.round((1 - Math.pow(1 - p, 4)) * target).toLocaleString() + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }, { threshold: 0.3 });
+      io.observe(el);
+    });
+  })();
+
+})();
