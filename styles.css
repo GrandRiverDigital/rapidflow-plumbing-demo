@@ -1315,7 +1315,7 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
   display: none;
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  z-index: 600;
+  z-index: 999;
   background: rgba(10,22,40,.97);
   backdrop-filter: blur(14px);
   border-top: 1px solid rgba(255,255,255,.08);
