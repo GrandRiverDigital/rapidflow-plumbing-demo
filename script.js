@@ -1,5 +1,5 @@
 /* =============================================
-   EVERGREEN OUTDOOR LIVING — script.js
+   RAPIDFLOW PLUMBING — script.js
    ============================================= */
 
 'use strict';
@@ -32,7 +32,7 @@ if (!prefRed) {
 ───────────────────────────────────────────── */
 const hdr = $('#hdr');
 const onScroll = () => {
-  hdr.classList.toggle('scrolled', window.scrollY > 30);
+  if (hdr) hdr.classList.toggle('scrolled', window.scrollY > 30);
 };
 window.addEventListener('scroll', onScroll, { passive: true });
 
@@ -41,7 +41,9 @@ window.addEventListener('scroll', onScroll, { passive: true });
 ───────────────────────────────────────────── */
 $$('a[href^="#"]').forEach(link => {
   link.addEventListener('click', function (e) {
-    const target = $(this.getAttribute('href'));
+    const href = this.getAttribute('href');
+    if (!href || href === '#') return;
+    const target = $(href);
     if (!target) return;
     e.preventDefault();
     const top = target.getBoundingClientRect().top + window.scrollY - 80;
@@ -72,13 +74,15 @@ function closeNav() {
   document.body.style.overflow = '';
 }
 
-hamburger.addEventListener('click', () => navOpen ? closeNav() : openNav());
+if (hamburger && mobileNav) {
+  hamburger.addEventListener('click', () => navOpen ? closeNav() : openNav());
 
-$$('.mobile-link').forEach(link => {
-  link.addEventListener('click', () => {
-    if (navOpen) closeNav();
+  $$('.mobile-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (navOpen) closeNav();
+    });
   });
-});
+}
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && navOpen) closeNav();
@@ -113,8 +117,8 @@ const statsIO = new IntersectionObserver((entries) => {
     if (e.isIntersecting && !countersDone) {
       countersDone = true;
       statsIO.disconnect();
-      animateCounter($('#sn-proj'), 850, '+', 1800);
-      animateCounter($('#sn-yrs'), 15, '+', 1400);
+      animateCounter($('#sn-jobs'), 4200, '+', 1800);
+      animateCounter($('#sn-yrs'), 12, '+', 1400);
     }
   });
 }, { threshold: 0.3 });
@@ -124,31 +128,30 @@ if (statsSection) statsIO.observe(statsSection);
 /* ─────────────────────────────────────────────
    6. GALLERY LIGHTBOX
 ───────────────────────────────────────────── */
-const lightbox    = $('#lightbox');
-const lbImg       = $('#lb-img');
-const lbCaption   = $('#lb-caption');
-const lbClose     = $('#lb-close');
-const lbPrev      = $('#lb-prev');
-const lbNext      = $('#lb-next');
+const lightbox     = $('#lightbox');
+const lbImg        = $('#lb-img');
+const lbCaption    = $('#lb-caption');
+const lbClose      = $('#lb-close');
+const lbPrev       = $('#lb-prev');
+const lbNext       = $('#lb-next');
 const galleryItems = $$('.gallery-item[data-src]');
-let currentIndex  = 0;
+let currentIndex   = 0;
 
 function openLightbox(index) {
   const item = galleryItems[index];
   if (!item) return;
   currentIndex = index;
   lbImg.src = item.dataset.src;
-  lbImg.alt = item.querySelector('img').alt;
+  lbImg.alt = item.querySelector('img') ? item.querySelector('img').alt : '';
   lbCaption.textContent = item.dataset.caption || '';
   lightbox.classList.add('open');
   document.body.style.overflow = 'hidden';
-  lbClose.focus();
+  if (lbClose) lbClose.focus();
 }
 
 function closeLightbox() {
   lightbox.classList.remove('open');
   document.body.style.overflow = '';
-  // return focus to the item that opened it
   if (galleryItems[currentIndex]) galleryItems[currentIndex].focus();
 }
 
@@ -157,49 +160,51 @@ function showImage(index) {
   openLightbox(i);
 }
 
-galleryItems.forEach((item, i) => {
-  item.setAttribute('tabindex', '0');
-  item.setAttribute('role', 'button');
-  item.setAttribute('aria-label', item.dataset.caption || 'View project image');
-  item.addEventListener('click', () => openLightbox(i));
-  item.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(i); }
+if (lightbox) {
+  galleryItems.forEach((item, i) => {
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('role', 'button');
+    item.setAttribute('aria-label', item.dataset.caption || 'View project image');
+    item.addEventListener('click', () => openLightbox(i));
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(i); }
+    });
   });
-});
 
-lbClose.addEventListener('click', closeLightbox);
-lbPrev.addEventListener('click', () => showImage(currentIndex - 1));
-lbNext.addEventListener('click', () => showImage(currentIndex + 1));
+  lbClose.addEventListener('click', closeLightbox);
+  lbPrev.addEventListener('click', () => showImage(currentIndex - 1));
+  lbNext.addEventListener('click', () => showImage(currentIndex + 1));
 
-lightbox.addEventListener('click', (e) => {
-  if (e.target === lightbox) closeLightbox();
-});
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  /* Touch swipe for lightbox */
+  let lbTouchX = null;
+  lightbox.addEventListener('touchstart', (e) => { lbTouchX = e.touches[0].clientX; }, { passive: true });
+  lightbox.addEventListener('touchend', (e) => {
+    if (lbTouchX === null) return;
+    const dx = e.changedTouches[0].clientX - lbTouchX;
+    if (Math.abs(dx) > 50) showImage(currentIndex + (dx < 0 ? 1 : -1));
+    lbTouchX = null;
+  });
+}
 
 document.addEventListener('keydown', (e) => {
-  if (!lightbox.classList.contains('open')) return;
+  if (!lightbox || !lightbox.classList.contains('open')) return;
   if (e.key === 'Escape')     closeLightbox();
   if (e.key === 'ArrowLeft')  showImage(currentIndex - 1);
   if (e.key === 'ArrowRight') showImage(currentIndex + 1);
 });
 
-/* Touch swipe for lightbox */
-let lbTouchX = null;
-lightbox.addEventListener('touchstart', (e) => { lbTouchX = e.touches[0].clientX; }, { passive: true });
-lightbox.addEventListener('touchend', (e) => {
-  if (lbTouchX === null) return;
-  const dx = e.changedTouches[0].clientX - lbTouchX;
-  if (Math.abs(dx) > 50) showImage(currentIndex + (dx < 0 ? 1 : -1));
-  lbTouchX = null;
-});
-
 /* ─────────────────────────────────────────────
    7. TESTIMONIALS CAROUSEL
 ───────────────────────────────────────────── */
-const track       = $('#carousel-track');
+const track         = $('#carousel-track');
 const dotsContainer = $('#carousel-dots');
-const prevBtn     = $('#prev-btn');
-const nextBtn     = $('#next-btn');
-const cards       = $$('.testimonial-card', track);
+const prevBtn       = $('#prev-btn');
+const nextBtn       = $('#next-btn');
+const cards         = track ? $$('.testimonial-card', track) : [];
 
 if (track && cards.length) {
   let currentSlide = 0;
@@ -214,12 +219,13 @@ if (track && cards.length) {
   }
 
   function buildDots() {
+    const count = Math.ceil(cards.length / getSlidesPerView());
     dotsContainer.innerHTML = '';
-    for (let i = 0; i < totalSlides; i++) {
+    for (let i = 0; i < count; i++) {
       const dot = document.createElement('button');
       dot.className = 'carousel-dot' + (i === currentSlide ? ' active' : '');
       dot.setAttribute('role', 'tab');
-      dot.setAttribute('aria-label', `Slide ${i + 1} of ${totalSlides}`);
+      dot.setAttribute('aria-label', `Slide ${i + 1} of ${count}`);
       dot.setAttribute('aria-selected', i === currentSlide);
       dot.addEventListener('click', () => goTo(i));
       dotsContainer.appendChild(dot);
@@ -234,21 +240,22 @@ if (track && cards.length) {
   }
 
   function goTo(index) {
-    currentSlide = (index + totalSlides) % totalSlides;
-    const cardWidth = cards[0].offsetWidth + 20; // gap = 1.25rem ~ 20px
-    const offset = currentSlide * slidesPerView * cardWidth;
+    const total = Math.ceil(cards.length / getSlidesPerView());
+    currentSlide = (index + total) % total;
+    const cardWidth = cards[0].offsetWidth + 20; // gap ~20px
+    const offset = currentSlide * getSlidesPerView() * cardWidth;
     track.style.transform = `translateX(-${offset}px)`;
     updateDots();
   }
 
   function startAuto() {
     clearInterval(autoInterval);
-    autoInterval = setInterval(() => goTo(currentSlide + 1), 5000);
+    autoInterval = setInterval(() => goTo(currentSlide + 1), 5200);
   }
   function stopAuto() { clearInterval(autoInterval); }
 
-  prevBtn.addEventListener('click', () => { goTo(currentSlide - 1); stopAuto(); startAuto(); });
-  nextBtn.addEventListener('click', () => { goTo(currentSlide + 1); stopAuto(); startAuto(); });
+  if (prevBtn) prevBtn.addEventListener('click', () => { goTo(currentSlide - 1); stopAuto(); startAuto(); });
+  if (nextBtn) nextBtn.addEventListener('click', () => { goTo(currentSlide + 1); stopAuto(); startAuto(); });
 
   /* Swipe on track */
   let touchStartX = null;
@@ -265,7 +272,6 @@ if (track && cards.length) {
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      slidesPerView = getSlidesPerView();
       goTo(0);
       buildDots();
     }, 250);
@@ -285,7 +291,6 @@ if (mobBar) {
   const showMobBar = () => {
     if (!mobBarShown) { mobBarShown = true; mobBar.classList.add('visible'); }
   };
-  // Show on first scroll, fallback after 600ms
   window.addEventListener('scroll', showMobBar, { passive: true, once: true });
   setTimeout(showMobBar, 600);
 }
@@ -296,12 +301,9 @@ if (mobBar) {
 const quoteForm = $('#quote-form');
 const submitBtn = $('#form-submit-btn');
 if (quoteForm && submitBtn) {
-  // Snapshot childNodes before any mutation so we can restore if needed
-  const btnOriginalNodes = [...submitBtn.childNodes].map(n => n.cloneNode(true));
   quoteForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    // Build success state via DOM (never innerHTML)
-    const checkmark = document.createTextNode('\u2705 Sent! We\u2019ll be in touch within 24 hours.');
+    const checkmark = document.createTextNode('\u2705 Sent! We\u2019ll call you back within the hour.');
     submitBtn.replaceChildren(checkmark);
     submitBtn.style.background = '#10B981';
     submitBtn.style.boxShadow = '0 8px 24px rgba(16,185,129,.38)';
