@@ -888,7 +888,7 @@ nav.desktop-nav a:hover {
   flex: 0 0 calc(33.333% - .85rem);
   min-width: 0;
   max-width: calc(33.333% - .85rem);
-  background: rgba(255,255,255,.05);
+  background: rgba(255,255,255,.07);
   border: 1px solid rgba(255,255,255,.07);
   border-radius: 14px;
   padding: 1.875rem;
@@ -909,7 +909,7 @@ nav.desktop-nav a:hover {
 .t-stars { color: var(--orange); font-size: .85rem; letter-spacing: 3px; margin-bottom: 1rem; }
 .t-text {
   font-size: .9375rem;
-  color: rgba(255,255,255,.72);
+  color: rgba(255,255,255,.85);
   line-height: 1.78;
   font-style: italic;
   margin-bottom: 1.5rem;
@@ -1221,7 +1221,7 @@ footer {
 .footer-socials { display: flex; gap: .625rem; margin-top: 1.5rem; }
 .footer-soc {
   width: 36px; height: 36px;
-  background: rgba(255,255,255,.05);
+  background: rgba(255,255,255,.07);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 8px;
   display: flex;
@@ -1257,10 +1257,10 @@ footer {
 /* GRD Banner */
 .grd-banner {
   font-size: .8125rem;
-  color: rgba(255,255,255,.3);
+  color: rgba(255,255,255,.65);
   text-align: center;
   padding-top: 1rem;
-  border-top: 1px solid rgba(255,255,255,.05);
+  border-top: 1px solid rgba(255,255,255,.08);
 }
 .grd-banner a {
   color: var(--orange);
